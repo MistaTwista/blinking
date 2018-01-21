@@ -34,8 +34,10 @@ def eye_aspect_ratio(eye):
 ap = argparse.ArgumentParser()
 ap.add_argument("-p", "--shape-predictor", required=True,
 	help="path to facial landmark predictor")
-ap.add_argument("-v", "--video", type=str, default="",
-	help="path to input video file")
+ap.add_argument("-r", "--picamera", type=int, default=-1,
+	help="whether or not the Raspberry Pi camera should be used")
+# ap.add_argument("-v", "--video", type=str, default="",
+# 	help="path to input video file")
 args = vars(ap.parse_args())
 
 # define two constants, one for the eye aspect ratio to indicate
@@ -56,30 +58,34 @@ predictor = dlib.shape_predictor(args["shape_predictor"])
 
 # grab the indexes of the facial landmarks for the left and
 # right eye, respectively
-(lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+# (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
 
 # start the video stream thread
-print("[INFO] starting video stream thread...")
-vs = FileVideoStream(args["video"]).start()
-fileStream = True
+# print("[INFO] starting video stream thread...")
+# vs = FileVideoStream(args["video"]).start()
+# fileStream = True
 # vs = VideoStream(src=0).start()
 # vs = VideoStream(usePiCamera=True).start()
 # fileStream = False
-time.sleep(1.0)
+print("[INFO] camera sensor warming up...")
+vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
+time.sleep(2.0)
 
 # loop over frames from the video stream
 while True:
 	# if this is a file video stream, then we need to check if
 	# there any more frames left in the buffer to process
-	if fileStream and not vs.more():
-		break
+	# if fileStream and not vs.more():
+	# 	break
 
 	# grab the frame from the threaded video file stream, resize
 	# it, and convert it to grayscale
 	# channels)
+	# frame = vs.read()
+	# frame = imutils.resize(frame, width=450)
 	frame = vs.read()
-	frame = imutils.resize(frame, width=450)
+	frame = imutils.resize(frame, width=400)
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 	# detect faces in the grayscale frame
@@ -95,24 +101,24 @@ while True:
 
 		# extract the left and right eye coordinates, then use the
 		# coordinates to compute the eye aspect ratio for both eyes
-		leftEye = shape[lStart:lEnd]
+		# leftEye = shape[lStart:lEnd]
 		rightEye = shape[rStart:rEnd]
-		leftEAR = eye_aspect_ratio(leftEye)
+		# leftEAR = eye_aspect_ratio(leftEye)
 		rightEAR = eye_aspect_ratio(rightEye)
 
 		# average the eye aspect ratio together for both eyes
-		ear = (leftEAR + rightEAR) / 2.0
+		# ear = (leftEAR + rightEAR) / 2.0
 
 		# compute the convex hull for the left and right eye, then
 		# visualize each of the eyes
-		leftEyeHull = cv2.convexHull(leftEye)
+		# leftEyeHull = cv2.convexHull(leftEye)
 		rightEyeHull = cv2.convexHull(rightEye)
-		cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
+		# cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
 		cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 1)
 
 		# check to see if the eye aspect ratio is below the blink
 		# threshold, and if so, increment the blink frame counter
-		if ear < EYE_AR_THRESH:
+		if rightEAR < EYE_AR_THRESH:
 			COUNTER += 1
 
 		# otherwise, the eye aspect ratio is not below the blink
@@ -130,7 +136,7 @@ while True:
 		# the computed eye aspect ratio for the frame
 		cv2.putText(frame, "Blinks: {}".format(TOTAL), (10, 30),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-		cv2.putText(frame, "EAR: {:.2f}".format(ear), (300, 30),
+		cv2.putText(frame, "EAR: {:.2f}".format(rightEAR), (300, 30),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
 	# show the frame
