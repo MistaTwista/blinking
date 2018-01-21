@@ -56,7 +56,7 @@ predictor = dlib.shape_predictor(args["shape_predictor"])
 
 # grab the indexes of the facial landmarks for the left and
 # right eye, respectively
-# (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
+(lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
 
 # start the video stream thread
@@ -67,9 +67,6 @@ fileStream = True
 # vs = VideoStream(usePiCamera=True).start()
 # fileStream = False
 time.sleep(1.0)
-
-vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
-time.sleep(2.0)
 
 # loop over frames from the video stream
 while True:
@@ -98,25 +95,24 @@ while True:
 
 		# extract the left and right eye coordinates, then use the
 		# coordinates to compute the eye aspect ratio for both eyes
-		# leftEye = shape[lStart:lEnd]
+		leftEye = shape[lStart:lEnd]
 		rightEye = shape[rStart:rEnd]
-		# leftEAR = eye_aspect_ratio(leftEye)
+		leftEAR = eye_aspect_ratio(leftEye)
 		rightEAR = eye_aspect_ratio(rightEye)
 
 		# average the eye aspect ratio together for both eyes
-		# ear = (leftEAR + rightEAR) / 2.0
+		ear = (leftEAR + rightEAR) / 2.0
 
 		# compute the convex hull for the left and right eye, then
 		# visualize each of the eyes
-		# leftEyeHull = cv2.convexHull(leftEye)
+		leftEyeHull = cv2.convexHull(leftEye)
 		rightEyeHull = cv2.convexHull(rightEye)
-		# cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
+		cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
 		cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 1)
 
 		# check to see if the eye aspect ratio is below the blink
 		# threshold, and if so, increment the blink frame counter
-		# if ear < EYE_AR_THRESH:
-		if rightEAR < EYE_AR_THRESH:
+		if ear < EYE_AR_THRESH:
 			COUNTER += 1
 
 		# otherwise, the eye aspect ratio is not below the blink
