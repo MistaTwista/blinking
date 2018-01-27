@@ -7,8 +7,13 @@ from scipy.spatial import distance as dist
 # from imutils.video import FileVideoStream
 from imutils.video import VideoStream
 from imutils import face_utils
+
+from pythonosc import osc_message_builder
+from pythonosc import udp_client
+
 import numpy as np
 import argparse
+import random
 import imutils
 import time
 import dlib
@@ -36,9 +41,11 @@ ap.add_argument("-p", "--shape-predictor", required=True,
 	help="path to facial landmark predictor")
 ap.add_argument("-r", "--picamera", type=int, default=-1,
 	help="whether or not the Raspberry Pi camera should be used")
+ap.add_argument("--ip", default="127.0.0.1", help="OSC server IP")
+ap.add_argument("--port", type=int, default=5005, help="OSC server port")
 # ap.add_argument("-v", "--video", type=str, default="",
 # 	help="path to input video file")
-args = vars(ap.parse_args())
+args = ap.parse_args()
 
 # define two constants, one for the eye aspect ratio to indicate
 # blink and then a second constant for the number of consecutive
@@ -54,7 +61,7 @@ TOTAL = 0
 # the facial landmark predictor
 print("[INFO] loading facial landmark predictor...")
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(args["shape_predictor"])
+predictor = dlib.shape_predictor(args.shape_predictor)
 
 # grab the indexes of the facial landmarks for the left and
 # right eye, respectively
@@ -69,9 +76,11 @@ predictor = dlib.shape_predictor(args["shape_predictor"])
 # vs = VideoStream(usePiCamera=True).start()
 # fileStream = False
 print("[INFO] camera sensor warming up...")
-vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
-time.sleep(2.0)
+vs = VideoStream(usePiCamera=args.picamera > 0).start()
 
+client = udp_client.SimpleUDPClient(args.ip, args.port)
+
+time.sleep(2.0)
 # loop over frames from the video stream
 while True:
 	# if this is a file video stream, then we need to check if
@@ -114,7 +123,7 @@ while True:
 		# leftEyeHull = cv2.convexHull(leftEye)
 		rightEyeHull = cv2.convexHull(rightEye)
 		# cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
-		cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 1)
+		cv2.drawContours(frame, [rightEyeHull], -1, (255, 255, 0), 1)
 
 		# check to see if the eye aspect ratio is below the blink
 		# threshold, and if so, increment the blink frame counter
@@ -134,6 +143,10 @@ while True:
 
 		# draw the total number of blinks on the frame along with
 		# the computed eye aspect ratio for the frame
+		client.send_message("/counter", TOTAL)
+		client.send_message("/ear", rightEAR)
+
+
 		cv2.putText(frame, "Blinks: {}".format(TOTAL), (10, 30),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 		cv2.putText(frame, "EAR: {:.2f}".format(rightEAR), (300, 30),
