@@ -1,8 +1,3 @@
-# USAGE
-# python detect_blinks.py --shape-predictor shape_predictor_68_face_landmarks.dat --video blink_detection_demo.mp4
-# python detect_blinks.py --shape-predictor shape_predictor_68_face_landmarks.dat
-
-# import the necessary packages
 from scipy.spatial import distance as dist
 # from imutils.video import FileVideoStream
 from imutils.video import VideoStream
@@ -19,39 +14,29 @@ import time
 import dlib
 import cv2
 
+EYE_AR_THRESH = 0.29
+EYE_AR_CONSEC_FRAMES = 1
+RESET_THRESH = 100
+
+
+# Compute the euclidean distances between vertical and horisontal landmarks
 def eye_aspect_ratio(eye):
-	# compute the euclidean distances between the two sets of
 	# vertical eye landmarks (x, y)-coordinates
 	A = dist.euclidean(eye[1], eye[5])
 	B = dist.euclidean(eye[2], eye[4])
-
-	# compute the euclidean distance between the horizontal
-	# eye landmark (x, y)-coordinates
+	# horizontal eye landmark (x, y)-coordinates
 	C = dist.euclidean(eye[0], eye[3])
 
-	# compute the eye aspect ratio
 	ear = (A + B) / (2.0 * C)
-
-	# return the eye aspect ratio
 	return ear
 
-# construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-p", "--shape-predictor", required=True,
 	help="path to facial landmark predictor")
-ap.add_argument("-r", "--picamera", type=int, default=-1,
-	help="whether or not the Raspberry Pi camera should be used")
 ap.add_argument("--ip", default="127.0.0.1", help="OSC server IP")
 ap.add_argument("--port", type=int, default=5005, help="OSC server port")
-# ap.add_argument("-v", "--video", type=str, default="",
-# 	help="path to input video file")
 args = ap.parse_args()
 
-# define two constants, one for the eye aspect ratio to indicate
-# blink and then a second constant for the number of consecutive
-# frames the eye must be below the threshold
-EYE_AR_THRESH = 0.26
-EYE_AR_CONSEC_FRAMES = 5
 
 # initialize the frame counters and the total number of blinks
 COUNTER = 0
@@ -69,30 +54,16 @@ predictor = dlib.shape_predictor(args.shape_predictor)
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
 
 # start the video stream thread
-# print("[INFO] starting video stream thread...")
-# vs = FileVideoStream(args["video"]).start()
-# fileStream = True
-# vs = VideoStream(src=0).start()
-# vs = VideoStream(usePiCamera=True).start()
-# fileStream = False
 print("[INFO] camera sensor warming up...")
 vs = VideoStream(usePiCamera=args.picamera > 0).start()
 
+# OSC client
 client = udp_client.SimpleUDPClient(args.ip, args.port)
 
 time.sleep(2.0)
-# loop over frames from the video stream
-while True:
-	# if this is a file video stream, then we need to check if
-	# there any more frames left in the buffer to process
-	# if fileStream and not vs.more():
-	# 	break
 
-	# grab the frame from the threaded video file stream, resize
-	# it, and convert it to grayscale
-	# channels)
-	# frame = vs.read()
-	# frame = imutils.resize(frame, width=450)
+while True:
+	# grab video, resize and convert it to grayscale
 	frame = vs.read()
 	frame = imutils.resize(frame, width=400)
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -100,7 +71,6 @@ while True:
 	# detect faces in the grayscale frame
 	rects = detector(gray, 0)
 
-	# if len 0 for some time
 	# if there is no rects for 5 seconds - reset
 	# if len(rects) > 0:
 	# 	client.send_message("/reset", 1)
@@ -130,15 +100,12 @@ while True:
 		# leftEyeHull = cv2.convexHull(leftEye)
 		rightEyeHull = cv2.convexHull(rightEye)
 		# cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
-		cv2.drawContours(frame, [rightEyeHull], -1, (255, 255, 0), 1)
+		cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 1)
 
 		# check to see if the eye aspect ratio is below the blink
 		# threshold, and if so, increment the blink frame counter
 		if rightEAR < EYE_AR_THRESH:
 			COUNTER += 1
-			client.send_message("/blink", 1)
-			time.sleep(0.2)
-			client.send_message("/blink", 0)
 
 		# otherwise, the eye aspect ratio is not below the blink
 		# threshold
@@ -155,7 +122,6 @@ while True:
 		# the computed eye aspect ratio for the frame
 		client.send_message("/counter", TOTAL)
 		client.send_message("/ear", rightEAR)
-		client.send_message("/filter", random.random())
 
 		cv2.putText(frame, "Blinks: {}".format(TOTAL), (10, 30),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
