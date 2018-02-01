@@ -50,8 +50,8 @@ args = ap.parse_args()
 # define two constants, one for the eye aspect ratio to indicate
 # blink and then a second constant for the number of consecutive
 # frames the eye must be below the threshold
-EYE_AR_THRESH = 0.3
-EYE_AR_CONSEC_FRAMES = 3
+EYE_AR_THRESH = 0.26
+EYE_AR_CONSEC_FRAMES = 5
 
 # initialize the frame counters and the total number of blinks
 COUNTER = 0
@@ -100,6 +100,13 @@ while True:
 	# detect faces in the grayscale frame
 	rects = detector(gray, 0)
 
+	# if len 0 for some time
+	# if there is no rects for 5 seconds - reset
+	# if len(rects) > 0:
+	# 	client.send_message("/reset", 1)
+	# 	time.sleep(0.2)
+	# 	client.send_message("/reset", 0)
+
 	# loop over the face detections
 	for rect in rects:
 		# determine the facial landmarks for the face region, then
@@ -129,6 +136,9 @@ while True:
 		# threshold, and if so, increment the blink frame counter
 		if rightEAR < EYE_AR_THRESH:
 			COUNTER += 1
+			client.send_message("/blink", 1)
+			time.sleep(0.2)
+			client.send_message("/blink", 0)
 
 		# otherwise, the eye aspect ratio is not below the blink
 		# threshold
@@ -145,7 +155,7 @@ while True:
 		# the computed eye aspect ratio for the frame
 		client.send_message("/counter", TOTAL)
 		client.send_message("/ear", rightEAR)
-
+		client.send_message("/filter", random.random())
 
 		cv2.putText(frame, "Blinks: {}".format(TOTAL), (10, 30),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)

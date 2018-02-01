@@ -11,7 +11,7 @@ from pythonosc import udp_client
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", default="127.0.0.1", help="OSC server IP")
-    parser.add_argument("--port", type=int, default=5005, help="OSC server port")
+    parser.add_argument("--port", type=int, default=8002, help="OSC server port")
     args = parser.parse_args()
 
     client = udp_client.SimpleUDPClient(args.ip, args.port)
