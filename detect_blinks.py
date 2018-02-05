@@ -8,15 +8,31 @@ from pythonosc import udp_client
 
 import numpy as np
 import argparse
-import random
 import imutils
 import time
 import dlib
 import cv2
 
-EYE_AR_THRESH = 0.29
+EYE_AR_THRESH = 0.24
 EYE_AR_CONSEC_FRAMES = 1
-RESET_THRESH = 100
+
+# after this count of frames without eye - reset CURRENT_SCENE to 0
+RESET_THRESH = 50
+
+# Scene 0 - reset scene
+# Scene 1 - calibration scene / intro
+# Scene 2 - movie
+# Scene 3 - outro
+# enum?
+CURRENT_SCENE = 0
+
+# Frames without person
+NO_ONE_IN = 0
+
+# calibrating scene
+while True:
+	print("Wohoo!")
+	break
 
 
 # Compute the euclidean distances between vertical and horisontal landmarks
@@ -41,6 +57,7 @@ args = ap.parse_args()
 # initialize the frame counters and the total number of blinks
 COUNTER = 0
 TOTAL = 0
+FRAME_COUNTER = 0
 
 # initialize dlib's face detector (HOG-based) and then create
 # the facial landmark predictor
@@ -55,7 +72,7 @@ predictor = dlib.shape_predictor(args.shape_predictor)
 
 # start the video stream thread
 print("[INFO] camera sensor warming up...")
-vs = VideoStream(usePiCamera=args.picamera > 0).start()
+vs = VideoStream().start()
 
 # OSC client
 client = udp_client.SimpleUDPClient(args.ip, args.port)
@@ -63,10 +80,12 @@ client = udp_client.SimpleUDPClient(args.ip, args.port)
 time.sleep(2.0)
 
 while True:
+	CURRENT_SCENE = 1
 	# grab video, resize and convert it to grayscale
 	frame = vs.read()
 	frame = imutils.resize(frame, width=400)
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+	# grayed = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 	# detect faces in the grayscale frame
 	rects = detector(gray, 0)
@@ -125,9 +144,29 @@ while True:
 
 		cv2.putText(frame, "Blinks: {}".format(TOTAL), (10, 30),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-		cv2.putText(frame, "EAR: {:.2f}".format(rightEAR), (300, 30),
+		cv2.putText(frame, "EAR: {:.2f}".format(rightEAR), (200, 30),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
+	cv2.putText(frame, "Rect: {:.2f}".format(len(rects)), (10, 60),
+		cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+	cv2.putText(frame, "Frame: {:.2f}".format(FRAME_COUNTER), (10, 90),
+		cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+	if len(rects) < 1:
+		NO_ONE_IN += 1
+	else:
+		NO_ONE_IN = 0
+	
+	if NO_ONE_IN > RESET_THRESH:
+		CURRENT_SCENE = 0
+
+	cv2.putText(frame, "NO_ONE_IN: {:.2f}".format(NO_ONE_IN), (10, 120),
+		cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+	cv2.putText(frame, "CURRENT_SCENE: {:.2f}".format(CURRENT_SCENE), (10, 150),
+		cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+
+	FRAME_COUNTER += 1
 	# show the frame
 	cv2.imshow("Frame", frame)
 	key = cv2.waitKey(1) & 0xFF
@@ -135,7 +174,18 @@ while True:
 	# if the `q` key was pressed, break from the loop
 	if key == ord("q"):
 		break
+	elif key == ord("1"):
+		CURRENT_SCENE = 1
+	elif key == ord("2"):
+		CURRENT_SCENE = 2
+	elif key == ord("3"):
+		CURRENT_SCENE = 3
+	elif key == ord("4"):
+		CURRENT_SCENE = 4
+	elif key == ord("5"):
+		CURRENT_SCENE = 5
 
 # do a bit of cleanup
 cv2.destroyAllWindows()
 vs.stop()
+
