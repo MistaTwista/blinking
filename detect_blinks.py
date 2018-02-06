@@ -1,4 +1,4 @@
-from scipy.spatial import distance as dist
+import eye
 # from imutils.video import FileVideoStream
 from imutils.video import VideoStream
 from imutils import face_utils
@@ -29,22 +29,6 @@ CURRENT_SCENE = 0
 # Frames without person
 NO_ONE_IN = 0
 
-# calibrating scene
-while True:
-	print("Wohoo!")
-	break
-
-
-# Compute the euclidean distances between vertical and horisontal landmarks
-def eye_aspect_ratio(eye):
-	# vertical eye landmarks (x, y)-coordinates
-	A = dist.euclidean(eye[1], eye[5])
-	B = dist.euclidean(eye[2], eye[4])
-	# horizontal eye landmark (x, y)-coordinates
-	C = dist.euclidean(eye[0], eye[3])
-
-	ear = (A + B) / (2.0 * C)
-	return ear
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-p", "--shape-predictor", required=True,
@@ -108,8 +92,8 @@ while True:
 		# coordinates to compute the eye aspect ratio for both eyes
 		# leftEye = shape[lStart:lEnd]
 		rightEye = shape[rStart:rEnd]
-		# leftEAR = eye_aspect_ratio(leftEye)
-		rightEAR = eye_aspect_ratio(rightEye)
+		# leftEAR = eye.aspect_ratio(leftEye)
+		rightEAR = eye.aspect_ratio(rightEye)
 
 		# average the eye aspect ratio together for both eyes
 		# ear = (leftEAR + rightEAR) / 2.0
@@ -174,16 +158,6 @@ while True:
 	# if the `q` key was pressed, break from the loop
 	if key == ord("q"):
 		break
-	elif key == ord("1"):
-		CURRENT_SCENE = 1
-	elif key == ord("2"):
-		CURRENT_SCENE = 2
-	elif key == ord("3"):
-		CURRENT_SCENE = 3
-	elif key == ord("4"):
-		CURRENT_SCENE = 4
-	elif key == ord("5"):
-		CURRENT_SCENE = 5
 
 # do a bit of cleanup
 cv2.destroyAllWindows()
