@@ -62,8 +62,11 @@ vs = VideoStream().start()
 client = udp_client.SimpleUDPClient(args.ip, args.port)
 
 time.sleep(2.0)
+counter = 0
 
+start_time = int(time.time())
 while True:
+	print("Counter:", counter)
 	CURRENT_SCENE = 1
 	# grab video, resize and convert it to grayscale
 	frame = vs.read()
@@ -158,6 +161,10 @@ while True:
 	# if the `q` key was pressed, break from the loop
 	if key == ord("q"):
 		break
+	
+	counter += 1
+	seconds_from_start = int(time.time()) - start_time
+	print(seconds_from_start)
 
 # do a bit of cleanup
 cv2.destroyAllWindows()
