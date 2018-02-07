@@ -43,35 +43,62 @@ class Show:
         time.sleep(2.0)
 
         while True:
-            while self.scene == Scene.START:
+            if self.scene == Scene.START:
                 print("Its show time...")
-                # run timer
-                # osc_client.send("/scene", Scene.START.value)
+                osc_client.send("/scene", Scene.START.value)
+                self.start_scene(vs, detector, osc_client, self.no_one_in)
 
-                blinking_show = BlinkingShow(vs, detector, osc_client, self.no_one_in)
-                blinking_show.run()
-
-                if self.scene == Scene.INIT:
-                    break
+            if self.scene == Scene.CALIBRATING:
+                print("Calibrating...")
+                osc_client.send("/scene", Scene.CALIBRATING.value)
+                self.calibrating_scene()
             
             if self.scene == Scene.INIT:
                 print("This is init")
                 osc_client.send("/scene", Scene.INIT.value)
-                self.scene = Scene.START
+                # self.scene = Scene.START
+                self.scene = Scene.CALIBRATING
             
             if self.scene == Scene.END:
                 print("This is the end")
                 osc_client.send("/scene", Scene.END.value)
             
-            while self.scene == Scene.CALIBRATING:
-                print("Calibrating...")
-                # run timer
-                osc_client.send("/scene", Scene.CALIBRATING.value)
-
         # do a bit of cleanup
         vs.stop()
     
+    def start_scene(self, vs, detector, osc_client, no_one_in):
+        blinking_show = BlinkingShow(vs, detector, osc_client, self.no_one_in)
+        timer = Timer()
+        # counter = 0
+        start_time = int(time.time())
+        while True:
+            print("Show timer", timer.value())
+            # print("Counter", counter)
+            blinking_show.run()
+            if timer.value() > 30:
+                self.scene = Scene.CALIBRATING
+                break
+            # counter += 1
+    
     def no_one_in(self):
+        print("No one in =(")
         self.scene = Scene.INIT
         return
+    
+    def calibrating_scene(self):
+        timer = Timer()
+        while True:
+            print("Calibration timer", timer.value())
+            if timer.value() > 10:
+                self.scene = Scene.START
+                break
+    
+    def init_scene(self):
+        return
 
+class Timer:
+    def __init__(self):
+        self.started_at = int(time.time())
+
+    def value(self):
+        return int(time.time()) - self.started_at

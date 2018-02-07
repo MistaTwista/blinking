@@ -27,43 +27,36 @@ class BlinkingShow:
         self.run()
     
     def run(self):
-        counter = 0
-        start_time = int(time.time())
-        while True:
-            print("Counter", counter)
-            # take frame from stream
-            self.frame = self.video_stream.get_frame()
-            gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        # take frame from stream
+        self.frame = self.video_stream.get_frame()
+        gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
 
-            # detect faces in the grayscale frame
-            rects = self.detector.detect(gray)
+        # detect faces in the grayscale frame
+        rects = self.detector.detect(gray)
 
-            self.detect_nobody(rects)
-            self.ear = 0
+        self.detect_nobody(rects)
+        self.ear = 0
 
-            # if self.show_debug:
-            #     cv2.putText(frame, "CURRENT_SCENE: {:.2f}".format(self.CURRENT_SCENE), (10, 150),
-            #         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        # if self.show_debug:
+        #     cv2.putText(frame, "CURRENT_SCENE: {:.2f}".format(self.CURRENT_SCENE), (10, 150),
+        #         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-            # loop over the face detections
-            for rect in rects:
-                # extract face shapes
-                shapes = self.detector.get_shapes(gray, rect)
-                self.ear = self.detect_ear(shapes, self.show_debug)
-                self.detect_blink()
+        # loop over the face detections
+        for rect in rects:
+            # extract face shapes
+            shapes = self.detector.get_shapes(gray, rect)
+            self.ear = self.detect_ear(shapes, self.show_debug)
+            self.detect_blink()
 
-            self.run_every_frame(rects)
-            self.osc_client.send("/ear", self.ear)
+        self.run_every_frame(rects)
+        self.osc_client.send("/ear", self.ear)
 
-            if self.show_debug:
-                cv2.putText(self.frame, "EAR: {:.2f}".format(self.ear), (200, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        if self.show_debug:
+            cv2.putText(self.frame, "EAR: {:.2f}".format(self.ear), (200, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-            # show the frame
-            cv2.imshow("Frame", self.frame)
-            counter += 1
-            seconds_from_start = int(time.time()) - start_time
-            print(seconds_from_start)
+        # show the frame
+        cv2.imshow("Frame", self.frame)
 
     def reset(self):
         cv2.destroyAllWindows()
